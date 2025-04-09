@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: personal-budget-tracker
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: node server.js
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        sync: false
+      - key: MONGODB_URI
+        sync: false 
