@@ -12,7 +12,8 @@ const app = express();
 // Try both PORT and SERVER_PORT environment variables
 const portEnv = process.env.PORT || process.env.SERVER_PORT || "8080";
 const portValue = parseInt(portEnv, 10);
-const PORT = isNaN(portValue) ? 8080 : portValue;
+const DEFAULT_PORT = isNaN(portValue) ? 8080 : portValue;
+let PORT = DEFAULT_PORT;
 const JWT_SECRET = process.env.JWT_SECRET || 'budget-tracker-secret-key';
 
 // Debug environment variables
@@ -24,8 +25,19 @@ console.log('Environment variables:', {
   MONGODB_URI: process.env.MONGODB_URI ? '[REDACTED]' : undefined
 });
 
+// Debug middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  console.log('Headers:', req.headers);
+  next();
+});
+
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: '*', // Allow all origins 
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
 app.use(bodyParser.json());
 
 // Connect to MongoDB
@@ -40,6 +52,9 @@ mongoose.connect(MONGODB_URI, {
     console.error('Connection string used (without credentials):', 
       MONGODB_URI.replace(/mongodb(\+srv)?:\/\/[^:]+:[^@]+@/, 'mongodb$1://***:***@'));
   });
+
+// Debug this MONGODB_URI 
+console.log('MongoDB URI:', MONGODB_URI ? MONGODB_URI.replace(/\/\/.*@/, '//***:***@') : 'Not set');
 
 // MongoDB Models
 const UserSchema = new mongoose.Schema({
@@ -91,30 +106,44 @@ const authenticateToken = (req, res, next) => {
 
 // Auth routes
 app.post('/api/auth/register', async (req, res) => {
+  console.log('Registration request received:', req.body);
   try {
     const { username, email, password } = req.body;
     
+    // Validate input
+    if (!username || !email || !password) {
+      console.log('Missing required fields');
+      return res.status(400).json({ message: 'Username, email and password are required' });
+    }
+    
     // Check if user exists
+    console.log('Checking if email exists:', email);
     const existingUser = await User.findOne({ email });
     if (existingUser) {
+      console.log('User already exists with email:', email);
       return res.status(400).json({ message: 'User already exists' });
     }
     
     // Hash password
+    console.log('Hashing password');
     const hashedPassword = await bcrypt.hash(password, 10);
     
     // Create new user
+    console.log('Creating new user with username:', username);
     const newUser = new User({
       username,
       email,
       password: hashedPassword
     });
     
+    console.log('Saving user to database');
     await newUser.save();
     
     // Generate token
+    console.log('Generating JWT token');
     const token = jwt.sign({ id: newUser._id, email }, JWT_SECRET, { expiresIn: '7d' });
     
+    console.log('Registration successful for:', email);
     res.status(201).json({
       token,
       user: {
@@ -124,8 +153,8 @@ app.post('/api/auth/register', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Registration error details:', error);
+    res.status(500).json({ message: 'Server error', details: error.message });
   }
 });
 
@@ -312,6 +341,26 @@ app.get('/api/categories', authenticateToken, async (req, res) => {
   }
 });
 
+// Reset endpoint - ONLY FOR DEVELOPMENT
+if (process.env.NODE_ENV !== 'production') {
+  app.post('/api/reset-db', async (req, res) => {
+    try {
+      if (mongoose.connection.readyState === 1) { // 1 = connected
+        await User.deleteMany({});
+        await FinancialEntry.deleteMany({});
+        await RecurringPayment.deleteMany({});
+        console.log('Database reset successful');
+        res.json({ message: 'Database reset successful' });
+      } else {
+        res.status(500).json({ message: 'MongoDB not connected' });
+      }
+    } catch (error) {
+      console.error('Error resetting database:', error);
+      res.status(500).json({ message: 'Error resetting database' });
+    }
+  });
+}
+
 // Status endpoint
 app.get('/api/status', (req, res) => {
   res.json({
@@ -376,6 +425,21 @@ if (process.env.NODE_ENV === 'production') {
   }
 }
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-}); 
+// Modified server listen logic
+const startServer = () => {
+  const server = app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`API accessible at http://localhost:${PORT}/api/status`);
+    console.log(`Frontend accessible at http://localhost:${PORT}`);
+  }).on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      PORT = PORT + 1;
+      console.log(`Port ${PORT-1} is in use, trying ${PORT}...`);
+      startServer(); // Try the next port
+    } else {
+      console.error('Server error:', err);
+    }
+  });
+};
+
+startServer(); 

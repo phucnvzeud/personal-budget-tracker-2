@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Login Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        h2 {
+            margin-top: 0;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background-color: #f9f9f9;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Budget Tracker API Test Page</h1>
+    
+    <div class="container">
+        <h2>Test Status API</h2>
+        <button id="statusBtn">Check Server Status</button>
+    </div>
+    
+    <div class="container">
+        <h2>Test Login API</h2>
+        <p>Using test user credentials:<br>
+        <strong>Email:</strong> test@example.com<br>
+        <strong>Password:</strong> password123</p>
+        <button id="loginBtn">Test Login</button>
+    </div>
+    
+    <div id="result"></div>
+    
+    <script>
+        document.getElementById('statusBtn').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Checking server status...';
+            resultDiv.style.display = 'block';
+            resultDiv.className = '';
+            
+            try {
+                const response = await fetch('http://localhost:8080/api/status');
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <h3>Status API Success</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+                resultDiv.className = 'success';
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <h3>Status API Error</h3>
+                    <p>${error.message}</p>
+                `;
+                resultDiv.className = 'error';
+            }
+        });
+        
+        document.getElementById('loginBtn').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Trying to login...';
+            resultDiv.style.display = 'block';
+            resultDiv.className = '';
+            
+            try {
+                const response = await fetch('http://localhost:8080/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'test@example.com',
+                        password: 'password123'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <h3>Login Success</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    resultDiv.className = 'success';
+                } else {
+                    resultDiv.innerHTML = `
+                        <h3>Login Failed</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    resultDiv.className = 'error';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <h3>Login Error</h3>
+                    <p>${error.message}</p>
+                `;
+                resultDiv.className = 'error';
+            }
+        });
+    </script>
+</body>
+</html> 

@@ -33,10 +33,16 @@ export const Register: React.FC<RegisterProps> = ({ onToggleForm }) => {
     }
     
     setError(null);
-    const success = await register(username, email, password);
-    
-    if (!success) {
-      setError('Email already in use or registration failed');
+    try {
+      console.log('Submitting registration for:', email);
+      const success = await register(username, email, password);
+      
+      if (!success) {
+        setError('Registration failed. This email may already be in use or there was a server error.');
+      }
+    } catch (error) {
+      console.error('Registration form error:', error);
+      setError('Registration failed due to an unexpected error.');
     }
   };
 

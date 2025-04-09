@@ -19,8 +19,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Setup API base URL - will default to localhost for development
-const API_URL = process.env.REACT_APP_API_URL || '';
+// Setup API base URL - using hardcoded value that we know works
+const API_URL = 'http://localhost:8080';
 
 // Token storage key
 const TOKEN_STORAGE_KEY = 'budget-tracker-token';
@@ -79,8 +79,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setLoading(true);
     
     try {
+      console.log('Making login API request to:', `${API_URL}/api/auth/login`);
+      console.log('Login credentials (email only):', email);
+      
       const response = await axios.post(`${API_URL}/api/auth/login`, { email, password });
+      console.log('Login response received:', response.status);
+      
       const { token, user } = response.data;
+      console.log('Login successful for user:', user.username);
       
       setToken(token);
       setCurrentUser({
@@ -91,8 +97,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       setLoading(false);
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
+      
+      // Log detailed error information
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        console.error('Server error response:', {
+          data: error.response.data,
+          status: error.response.status,
+          headers: error.response.headers
+        });
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.error('No response received:', error.request);
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.error('Request setup error:', error.message);
+      }
+      
       setLoading(false);
       return false;
     }
@@ -102,7 +126,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setLoading(true);
     
     try {
+      console.log('Making registration API request to:', `${API_URL}/api/auth/register`);
       const response = await axios.post(`${API_URL}/api/auth/register`, { username, email, password });
+      console.log('Registration response:', response.data);
+      
       const { token, user } = response.data;
       
       setToken(token);
@@ -114,8 +141,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       setLoading(false);
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Registration error:', error);
+      
+      // Log detailed error information
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        console.error('Server error response:', {
+          data: error.response.data,
+          status: error.response.status,
+          headers: error.response.headers
+        });
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.error('No response received:', error.request);
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.error('Request setup error:', error.message);
+      }
+      
       setLoading(false);
       return false;
     }

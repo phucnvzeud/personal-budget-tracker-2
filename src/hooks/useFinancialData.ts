@@ -18,8 +18,11 @@ import {
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 
-// Setup API base URL - will default to localhost for development
-const API_URL = process.env.REACT_APP_API_URL || '';
+// Setup API base URL - will default to the current host
+const API_URL = process.env.REACT_APP_API_URL || 
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? `${window.location.protocol}//${window.location.hostname}:${window.location.port}`
+    : ''); // Empty string for same-origin requests in production
 
 // Helper function to safely handle date serialization
 const dateReviver = (key: string, value: any) => {
