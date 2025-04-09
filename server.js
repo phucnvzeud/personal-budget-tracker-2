@@ -8,8 +8,16 @@ const path = require('path');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+// Force PORT to be a number
+const PORT = parseInt(process.env.PORT || "8080", 10);
 const JWT_SECRET = process.env.JWT_SECRET || 'budget-tracker-secret-key';
+
+// Debug environment variables
+console.log('Environment variables:', { 
+  NODE_ENV: process.env.NODE_ENV,
+  PORT: process.env.PORT,
+  MONGODB_URI: process.env.MONGODB_URI ? '[REDACTED]' : undefined
+});
 
 // Middleware
 app.use(cors());
@@ -18,8 +26,6 @@ app.use(bodyParser.json());
 // Connect to MongoDB
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/dedfinance';
 mongoose.connect(MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
   serverSelectionTimeoutMS: 5000, // 5 seconds timeout
   socketTimeoutMS: 45000 // 45 seconds timeout
 })

@@ -2,8 +2,10 @@ services:
   - type: web
     name: personal-budget-tracker
     env: node
+    plan: free
     buildCommand: npm install && npm run build
     startCommand: node server.js
+    preDeployCommand: cp .env.render .env
     envVars:
       - key: PORT
         value: 8080
