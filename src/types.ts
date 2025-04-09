@@ -1,5 +1,6 @@
 export type FinancialEntry = {
   id: string;
+  _id?: string; // MongoDB ID
   date: Date;
   amount: number;
   description: string;
@@ -14,6 +15,7 @@ export type RecurringScheduleType =
 
 export type RecurringPayment = {
   id: string;
+  _id?: string; // MongoDB ID
   description: string;
   amount: number;
   type: 'income' | 'expense';

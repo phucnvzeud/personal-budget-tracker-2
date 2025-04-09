@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
+import axios from 'axios';
 
 interface User {
   id: string;
@@ -13,73 +14,83 @@ interface AuthContextType {
   register: (username: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
   loading: boolean;
+  token: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const LOCAL_STORAGE_USER_KEY = 'budget-tracker-user';
-const LOCAL_STORAGE_USERS_KEY = 'budget-tracker-users';
+// Setup API base URL - will default to localhost for development
+const API_URL = process.env.REACT_APP_API_URL || '';
+
+// Token storage key
+const TOKEN_STORAGE_KEY = 'budget-tracker-token';
+const USER_STORAGE_KEY = 'budget-tracker-user';
+
+// Add the token to all axios requests
+axios.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // On init, check for saved user
+  // On init, check for saved token and user
   useEffect(() => {
-    const storedUser = localStorage.getItem(LOCAL_STORAGE_USER_KEY);
-    if (storedUser) {
+    const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+    const storedUser = localStorage.getItem(USER_STORAGE_KEY);
+    
+    if (storedToken && storedUser) {
       try {
+        setToken(storedToken);
         setCurrentUser(JSON.parse(storedUser));
       } catch (error) {
         console.error('Failed to parse stored user data', error);
+        // Clear invalid data
+        localStorage.removeItem(TOKEN_STORAGE_KEY);
+        localStorage.removeItem(USER_STORAGE_KEY);
       }
     }
     setLoading(false);
   }, []);
 
-  // Save user data when it changes
+  // Save user and token data when they change
   useEffect(() => {
-    if (currentUser) {
-      localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(currentUser));
+    if (currentUser && token) {
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(currentUser));
+      localStorage.setItem(TOKEN_STORAGE_KEY, token);
     } else {
-      localStorage.removeItem(LOCAL_STORAGE_USER_KEY);
+      localStorage.removeItem(USER_STORAGE_KEY);
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
     }
-  }, [currentUser]);
-
-  // Get users from local storage
-  const getUsers = (): { [email: string]: { id: string; username: string; password: string } } => {
-    const storedUsers = localStorage.getItem(LOCAL_STORAGE_USERS_KEY);
-    return storedUsers ? JSON.parse(storedUsers) : {};
-  };
-
-  // Save users to local storage
-  const saveUsers = (users: { [email: string]: { id: string; username: string; password: string } }) => {
-    localStorage.setItem(LOCAL_STORAGE_USERS_KEY, JSON.stringify(users));
-  };
+  }, [currentUser, token]);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    // This would be an API call in a real app
     setLoading(true);
     
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const response = await axios.post(`${API_URL}/api/auth/login`, { email, password });
+      const { token, user } = response.data;
       
-      const users = getUsers();
-      const user = users[email];
-      
-      if (user && user.password === password) {
-        setCurrentUser({
-          id: user.id,
-          username: user.username,
-          email
-        });
-        setLoading(false);
-        return true;
-      }
+      setToken(token);
+      setCurrentUser({
+        id: user.id,
+        username: user.username,
+        email: user.email
+      });
       
       setLoading(false);
-      return false;
+      return true;
     } catch (error) {
       console.error('Login error:', error);
       setLoading(false);
@@ -88,39 +99,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const register = async (username: string, email: string, password: string): Promise<boolean> => {
-    // This would be an API call in a real app
     setLoading(true);
     
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const response = await axios.post(`${API_URL}/api/auth/register`, { username, email, password });
+      const { token, user } = response.data;
       
-      const users = getUsers();
-      
-      // Check if email is already registered
-      if (users[email]) {
-        setLoading(false);
-        return false;
-      }
-      
-      // Generate a unique user ID
-      const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      // Create a new user
-      users[email] = {
-        id: userId,
-        username,
-        password
-      };
-      
-      // Save to local storage
-      saveUsers(users);
-      
-      // Log the user in
+      setToken(token);
       setCurrentUser({
-        id: userId,
-        username,
-        email
+        id: user.id,
+        username: user.username,
+        email: user.email
       });
       
       setLoading(false);
@@ -134,17 +123,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = () => {
     setCurrentUser(null);
+    setToken(null);
   };
 
   return (
     <AuthContext.Provider
       value={{
         currentUser,
-        isAuthenticated: !!currentUser,
+        isAuthenticated: !!currentUser && !!token,
         login,
         register,
         logout,
-        loading
+        loading,
+        token
       }}
     >
       {children}

@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - MONGODB_URI=mongodb+srv://dedzeud:Samurai1606@dedfinance.us8qhwr.mongodb.net/dedfinance?retryWrites=true&w=majority
+      - JWT_SECRET=dev-jwt-secret-key
+      - NODE_ENV=development
+    volumes:
+      - .:/app
+      - /app/node_modules
+    restart: unless-stopped
+
+  # MongoDB container is now commented out since we're using Atlas
+  # mongodb:
+  #   image: mongo:latest
+  #   ports:
+  #     - "27017:27017"
+  #   volumes:
+  #     - mongodb_data:/data/db
+  #   restart: unless-stopped
+
+volumes:
+  mongodb_data: 

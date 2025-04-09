@@ -16,76 +16,92 @@ import {
   getDate
 } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
+import axios from 'axios';
 
-const ENTRIES_STORAGE_KEY = 'personal-budget-tracker-entries';
-const RECURRING_PAYMENTS_STORAGE_KEY = 'personal-budget-tracker-recurring-payments';
+// Setup API base URL - will default to localhost for development
+const API_URL = process.env.REACT_APP_API_URL || '';
 
 // Helper function to safely handle date serialization
 const dateReviver = (key: string, value: any) => {
-  if (key === 'date' || key === 'startDate' || key === 'endDate') {
+  if (key === 'date' || key === 'startDate' || key === 'endDate' || key === 'validFrom' || key === 'validUntil') {
     return new Date(value);
   }
   return value;
 };
 
 export const useFinancialData = (currentDate: Date = new Date()) => {
-  const { currentUser } = useAuth();
+  const { currentUser, token } = useAuth();
   const [entries, setEntries] = useState<FinancialEntry[]>([]);
   const [recurringPayments, setRecurringPayments] = useState<RecurringPayment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Get storage key for the current user
-  const getStorageKey = useCallback((key: string) => {
-    return currentUser 
-      ? `${key}-${currentUser.id}`
-      : key;
-  }, [currentUser]);
-
-  // Load entries from localStorage
+  // Load entries from API
   useEffect(() => {
-    const savedEntries = localStorage.getItem(getStorageKey(ENTRIES_STORAGE_KEY));
-    if (savedEntries) {
-      const parsedEntries = JSON.parse(savedEntries, dateReviver);
-      setEntries(parsedEntries.map((entry: any) => ({
-        ...entry,
-        date: new Date(entry.date)
-      })));
-    }
-  }, [getStorageKey]);
+    const loadEntries = async () => {
+      if (!currentUser || !token) {
+        setEntries([]);
+        return;
+      }
 
-  // Save entries to localStorage
-  useEffect(() => {
-    if (entries.length > 0) {
-      localStorage.setItem(getStorageKey(ENTRIES_STORAGE_KEY), JSON.stringify(entries));
-    } else {
-      // If there are no entries, remove the item from localStorage
-      localStorage.removeItem(getStorageKey(ENTRIES_STORAGE_KEY));
-    }
-  }, [entries, getStorageKey]);
+      try {
+        setIsLoading(true);
+        const response = await axios.get(`${API_URL}/api/entries`);
+        
+        // Convert string dates to Date objects
+        const processedEntries = response.data.map((entry: any) => ({
+          ...entry,
+          id: entry._id || entry.id, // Handle MongoDB _id
+          date: new Date(entry.date)
+        }));
+        
+        setEntries(processedEntries);
+        setError(null);
+      } catch (err: any) {
+        console.error('Error loading entries:', err);
+        setError(err.message || 'Failed to load financial entries');
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  // Load recurring payments from localStorage
-  useEffect(() => {
-    const savedRecurringPayments = localStorage.getItem(getStorageKey(RECURRING_PAYMENTS_STORAGE_KEY));
-    if (savedRecurringPayments) {
-      const parsedPayments = JSON.parse(savedRecurringPayments, dateReviver);
-      setRecurringPayments(parsedPayments.map((payment: any) => ({
-        ...payment,
-        startDate: new Date(payment.startDate),
-        endDate: payment.endDate ? new Date(payment.endDate) : undefined,
-        validFrom: new Date(payment.validFrom),
-        validUntil: payment.validUntil ? new Date(payment.validUntil) : undefined
-      })));
-    }
-  }, [getStorageKey]);
+    loadEntries();
+  }, [currentUser, token]);
 
-  // Save recurring payments to localStorage
+  // Load recurring payments from API
   useEffect(() => {
-    if (recurringPayments.length > 0) {
-      localStorage.setItem(getStorageKey(RECURRING_PAYMENTS_STORAGE_KEY), JSON.stringify(recurringPayments));
-    } else {
-      // If there are no recurring payments, remove the item from localStorage
-      localStorage.removeItem(getStorageKey(RECURRING_PAYMENTS_STORAGE_KEY));
-    }
-  }, [recurringPayments, getStorageKey]);
+    const loadRecurringPayments = async () => {
+      if (!currentUser || !token) {
+        setRecurringPayments([]);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const response = await axios.get(`${API_URL}/api/recurring-payments`);
+        
+        // Convert string dates to Date objects
+        const processedPayments = response.data.map((payment: any) => ({
+          ...payment,
+          id: payment._id || payment.id, // Handle MongoDB _id
+          startDate: new Date(payment.startDate),
+          endDate: payment.endDate ? new Date(payment.endDate) : undefined,
+          validFrom: new Date(payment.validFrom),
+          validUntil: payment.validUntil ? new Date(payment.validUntil) : undefined
+        }));
+        
+        setRecurringPayments(processedPayments);
+        setError(null);
+      } catch (err: any) {
+        console.error('Error loading recurring payments:', err);
+        setError(err.message || 'Failed to load recurring payments');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadRecurringPayments();
+  }, [currentUser, token]);
 
   // Process recurring payments and generate entries
   useEffect(() => {
@@ -238,15 +254,40 @@ export const useFinancialData = (currentDate: Date = new Date()) => {
 
       // Add new entries if any were generated
       if (newEntries.length > 0) {
-        setEntries(prevEntries => [...prevEntries, ...newEntries]);
+        // First, save the entries to the API
+        Promise.all(
+          newEntries.map(entry => 
+            axios.post(`${API_URL}/api/entries`, {
+              date: entry.date,
+              amount: entry.amount,
+              description: entry.description,
+              type: entry.type
+            })
+          )
+        )
+        .then(responses => {
+          // Get the saved entries with their server-generated IDs
+          const savedEntries = responses.map(response => ({
+            ...response.data,
+            id: response.data._id || response.data.id, // Handle MongoDB _id
+            date: new Date(response.data.date)
+          }));
+          
+          // Update the local state
+          setEntries(prevEntries => [...prevEntries, ...savedEntries]);
+        })
+        .catch(err => {
+          console.error('Failed to save generated recurring entries:', err);
+          setError('Failed to save generated recurring entries');
+        });
       }
     };
 
     // Process recurring payments
-    if (recurringPayments.length > 0) {
+    if (recurringPayments.length > 0 && currentUser && token) {
       processRecurringPayments();
     }
-  }, [recurringPayments, entries, currentDate]);
+  }, [recurringPayments, entries, currentDate, currentUser, token]);
 
   // Calculate month data
   const monthData = useMemo(() => {
@@ -351,269 +392,193 @@ export const useFinancialData = (currentDate: Date = new Date()) => {
   }, [currentDate, entries]);
 
   // Add a new financial entry
-  const addEntry = (entry: Omit<FinancialEntry, 'id'>) => {
-    const newEntry = {
-      ...entry,
-      id: uuidv4(),
-    };
-    setEntries(prevEntries => [...prevEntries, newEntry]);
+  const addEntry = async (entry: Omit<FinancialEntry, 'id'>) => {
+    if (!currentUser || !token) {
+      setError('You must be logged in to add entries');
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      const response = await axios.post(`${API_URL}/api/entries`, entry);
+      
+      const newEntry = {
+        ...response.data,
+        id: response.data._id || response.data.id, // Handle MongoDB _id
+        date: new Date(response.data.date)
+      };
+      
+      setEntries(prevEntries => [...prevEntries, newEntry]);
+      setError(null);
+    } catch (err: any) {
+      console.error('Error adding entry:', err);
+      setError(err.message || 'Failed to add entry');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Update an existing financial entry
-  const updateEntry = (updatedEntry: FinancialEntry) => {
-    setEntries(prevEntries =>
-      prevEntries.map(entry => 
-        entry.id === updatedEntry.id ? updatedEntry : entry
-      )
-    );
-  };
-
-  // Delete a financial entry
-  const deleteEntry = (id: string) => {
-    setEntries(prevEntries => prevEntries.filter(entry => entry.id !== id));
-  };
-
-  // Add a new recurring payment
-  const addRecurringPayment = (payment: Omit<RecurringPayment, 'id'>) => {
-    const newPayment = {
-      ...payment,
-      id: uuidv4(),
-    };
-    
-    // Immediately process this new payment to create entries
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    // Selected month in the UI
-    const selectedMonthStart = startOfMonth(currentDate);
-    const selectedMonthEnd = endOfMonth(currentDate);
-    
-    // The end date should be the later of today's month end or the selected month end
-    const endDate = new Date(
-      Math.max(
-        endOfMonth(today).getTime(),
-        selectedMonthEnd.getTime()
-      )
-    );
-    
-    let datesToProcess: Date[] = [];
-    
-    if (newPayment.isActive) {
-      // Get the earlier of the selected month start or today (for processing)
-      const startDate = new Date(Math.min(today.getTime(), selectedMonthStart.getTime()));
-      
-      // Check if the payment schedule is valid 
-      const processingStart = new Date(Math.max(newPayment.startDate.getTime(), startDate.getTime()));
-      const processingEnd = newPayment.endDate && isBefore(newPayment.endDate, endDate) 
-        ? newPayment.endDate 
-        : endDate;
-      
-      if (!isAfter(processingStart, processingEnd)) {
-        // Get dates based on schedule type
-        switch (newPayment.scheduleType) {
-          case 'specific-date':
-            if (newPayment.frequency === 'monthly' && newPayment.dayOfMonth) {
-              const allDays = eachDayOfInterval({ start: processingStart, end: processingEnd });
-              datesToProcess = allDays.filter(date => getDate(date) === newPayment.dayOfMonth);
-            } else if (newPayment.frequency === 'yearly' && newPayment.dayOfMonth) {
-              const allDays = eachDayOfInterval({ start: processingStart, end: processingEnd });
-              datesToProcess = allDays.filter(date => 
-                getDate(date) === newPayment.dayOfMonth &&
-                date.getMonth() === newPayment.startDate.getMonth()
-              );
-            }
-            break;
-          case 'weekdays-only':
-            datesToProcess = eachDayOfInterval({ start: processingStart, end: processingEnd })
-              .filter(date => !isWeekend(date));
-            break;
-          case 'weekends-only':
-            datesToProcess = eachDayOfInterval({ start: processingStart, end: processingEnd })
-              .filter(date => isWeekend(date));
-            break;
-          case 'custom-range':
-            datesToProcess = eachDayOfInterval({ start: processingStart, end: processingEnd });
-            
-            switch (newPayment.frequency) {
-              case 'daily':
-                break;
-              case 'weekly':
-                datesToProcess = datesToProcess.filter(date => 
-                  date.getDay() === newPayment.startDate.getDay()
-                );
-                break;
-              case 'monthly':
-                datesToProcess = datesToProcess.filter(date => 
-                  getDate(date) === getDate(newPayment.startDate)
-                );
-                break;
-              case 'yearly':
-                datesToProcess = datesToProcess.filter(date => 
-                  getDate(date) === getDate(newPayment.startDate) && 
-                  date.getMonth() === newPayment.startDate.getMonth()
-                );
-                break;
-            }
-            break;
-        }
-        
-        // Create entries for dates
-        const newEntries: FinancialEntry[] = datesToProcess.map(date => ({
-          id: uuidv4(),
-          date: new Date(date),
-          amount: newPayment.amount,
-          description: `[Recurring] ${newPayment.description}`,
-          type: newPayment.type
-        }));
-        
-        if (newEntries.length > 0) {
-          setEntries(prevEntries => [...prevEntries, ...newEntries]);
-        }
-      }
+  const updateEntry = async (updatedEntry: FinancialEntry) => {
+    if (!currentUser || !token) {
+      setError('You must be logged in to update entries');
+      return;
     }
     
-    setRecurringPayments(prevPayments => [...prevPayments, newPayment]);
-  };
-
-  // Update an existing recurring payment
-  const updateRecurringPayment = (updatedPayment: RecurringPayment) => {
-    // Get the existing payment to compare descriptions
-    const existingPayment = recurringPayments.find(p => p.id === updatedPayment.id);
-    if (!existingPayment) return;
-
-    // First, remove all existing entries for this recurring payment
-    setEntries(prevEntries => 
-      prevEntries.filter(entry => 
-        !entry.description.startsWith(`[Recurring] ${existingPayment.description}`)
-      )
-    );
-
-    // Update the recurring payment
-    setRecurringPayments(prevPayments =>
-      prevPayments.map(payment =>
-        payment.id === updatedPayment.id ? updatedPayment : payment
-      )
-    );
-
-    // If the payment is active, process it immediately to create new entries
-    if (updatedPayment.isActive) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+    try {
+      setIsLoading(true);
       
-      const selectedMonthStart = startOfMonth(currentDate);
-      const selectedMonthEnd = endOfMonth(currentDate);
+      // Use the MongoDB _id format for the API call
+      const entryId = updatedEntry._id || updatedEntry.id;
+      const { _id, id, ...entryData } = updatedEntry; // Remove both id fields for the API
       
-      const endDate = new Date(
-        Math.max(
-          endOfMonth(today).getTime(),
-          selectedMonthEnd.getTime()
+      const response = await axios.put(`${API_URL}/api/entries/${entryId}`, entryData);
+      
+      const savedEntry = {
+        ...response.data,
+        id: response.data._id || response.data.id, // Keep the id field for the frontend
+        date: new Date(response.data.date)
+      };
+      
+      setEntries(prevEntries =>
+        prevEntries.map(entry => 
+          entry.id === savedEntry.id ? savedEntry : entry
         )
       );
       
-      let datesToProcess: Date[] = [];
-      const startDate = new Date(Math.min(today.getTime(), selectedMonthStart.getTime()));
+      setError(null);
+    } catch (err: any) {
+      console.error('Error updating entry:', err);
+      setError(err.message || 'Failed to update entry');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Delete a financial entry
+  const deleteEntry = async (id: string) => {
+    if (!currentUser || !token) {
+      setError('You must be logged in to delete entries');
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      await axios.delete(`${API_URL}/api/entries/${id}`);
       
-      const processingStart = new Date(Math.max(updatedPayment.startDate.getTime(), startDate.getTime()));
-      const processingEnd = updatedPayment.endDate && isBefore(updatedPayment.endDate, endDate) 
-        ? updatedPayment.endDate 
-        : endDate;
+      setEntries(prevEntries => prevEntries.filter(entry => entry.id !== id));
+      setError(null);
+    } catch (err: any) {
+      console.error('Error deleting entry:', err);
+      setError(err.message || 'Failed to delete entry');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Add a recurring payment
+  const addRecurringPayment = async (payment: Omit<RecurringPayment, 'id'>) => {
+    if (!currentUser || !token) {
+      setError('You must be logged in to add recurring payments');
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      const response = await axios.post(`${API_URL}/api/recurring-payments`, payment);
       
-      if (!isAfter(processingStart, processingEnd)) {
-        switch (updatedPayment.scheduleType) {
-          case 'specific-date':
-            if (updatedPayment.frequency === 'monthly' && updatedPayment.dayOfMonth) {
-              const allDays = eachDayOfInterval({ start: processingStart, end: processingEnd });
-              datesToProcess = allDays.filter(date => getDate(date) === updatedPayment.dayOfMonth);
-            } else if (updatedPayment.frequency === 'yearly' && updatedPayment.dayOfMonth) {
-              const allDays = eachDayOfInterval({ start: processingStart, end: processingEnd });
-              datesToProcess = allDays.filter(date => 
-                getDate(date) === updatedPayment.dayOfMonth &&
-                date.getMonth() === updatedPayment.startDate.getMonth()
-              );
-            }
-            break;
-          case 'weekdays-only':
-            datesToProcess = eachDayOfInterval({ start: processingStart, end: processingEnd })
-              .filter(date => !isWeekend(date));
-            break;
-          case 'weekends-only':
-            datesToProcess = eachDayOfInterval({ start: processingStart, end: processingEnd })
-              .filter(date => isWeekend(date));
-            break;
-          case 'custom-range':
-            datesToProcess = eachDayOfInterval({ start: processingStart, end: processingEnd });
-            
-            switch (updatedPayment.frequency) {
-              case 'daily':
-                break;
-              case 'weekly':
-                datesToProcess = datesToProcess.filter(date => 
-                  date.getDay() === updatedPayment.startDate.getDay()
-                );
-                break;
-              case 'monthly':
-                datesToProcess = datesToProcess.filter(date => 
-                  getDate(date) === getDate(updatedPayment.startDate)
-                );
-                break;
-              case 'yearly':
-                datesToProcess = datesToProcess.filter(date => 
-                  getDate(date) === getDate(updatedPayment.startDate) && 
-                  date.getMonth() === updatedPayment.startDate.getMonth()
-                );
-                break;
-            }
-            break;
-        }
-        
-        // Create new entries for the updated payment
-        const newEntries: FinancialEntry[] = datesToProcess.map(date => ({
-          id: uuidv4(),
-          date: new Date(date),
-          amount: updatedPayment.amount,
-          description: `[Recurring] ${updatedPayment.description}`,
-          type: updatedPayment.type
-        }));
-        
-        if (newEntries.length > 0) {
-          setEntries(prevEntries => [...prevEntries, ...newEntries]);
-        }
-      }
+      const newPayment = {
+        ...response.data,
+        id: response.data._id || response.data.id, // Handle MongoDB _id
+        startDate: new Date(response.data.startDate),
+        endDate: response.data.endDate ? new Date(response.data.endDate) : undefined,
+        validFrom: new Date(response.data.validFrom),
+        validUntil: response.data.validUntil ? new Date(response.data.validUntil) : undefined
+      };
+      
+      setRecurringPayments(prevPayments => [...prevPayments, newPayment]);
+      setError(null);
+    } catch (err: any) {
+      console.error('Error adding recurring payment:', err);
+      setError(err.message || 'Failed to add recurring payment');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Update a recurring payment
+  const updateRecurringPayment = async (updatedPayment: RecurringPayment) => {
+    if (!currentUser || !token) {
+      setError('You must be logged in to update recurring payments');
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      
+      // Use the MongoDB _id format for the API call
+      const paymentId = updatedPayment._id || updatedPayment.id;
+      const { _id, id, ...paymentData } = updatedPayment; // Remove both id fields for the API
+      
+      const response = await axios.put(`${API_URL}/api/recurring-payments/${paymentId}`, paymentData);
+      
+      const savedPayment = {
+        ...response.data,
+        id: response.data._id || response.data.id, // Keep the id field for the frontend
+        startDate: new Date(response.data.startDate),
+        endDate: response.data.endDate ? new Date(response.data.endDate) : undefined,
+        validFrom: new Date(response.data.validFrom),
+        validUntil: response.data.validUntil ? new Date(response.data.validUntil) : undefined
+      };
+      
+      setRecurringPayments(prevPayments =>
+        prevPayments.map(payment => 
+          payment.id === savedPayment.id ? savedPayment : payment
+        )
+      );
+      
+      setError(null);
+    } catch (err: any) {
+      console.error('Error updating recurring payment:', err);
+      setError(err.message || 'Failed to update recurring payment');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Delete a recurring payment
-  const deleteRecurringPayment = (id: string) => {
-    // Get the payment before deleting it
-    const paymentToDelete = recurringPayments.find(payment => payment.id === id);
-    
-    if (paymentToDelete) {
-      // Remove all entries associated with this recurring payment
-      setEntries(prevEntries => {
-        const updatedEntries = prevEntries.filter(entry => 
-          !entry.description.startsWith(`[Recurring] ${paymentToDelete.description}`)
-        );
-        return updatedEntries;
-      });
+  const deleteRecurringPayment = async (id: string) => {
+    if (!currentUser || !token) {
+      setError('You must be logged in to delete recurring payments');
+      return;
     }
     
-    // Remove the recurring payment
-    setRecurringPayments(prevPayments => {
-      const updatedPayments = prevPayments.filter(payment => payment.id !== id);
-      return updatedPayments;
-    });
+    try {
+      setIsLoading(true);
+      await axios.delete(`${API_URL}/api/recurring-payments/${id}`);
+      
+      setRecurringPayments(prevPayments => prevPayments.filter(payment => payment.id !== id));
+      setError(null);
+    } catch (err: any) {
+      console.error('Error deleting recurring payment:', err);
+      setError(err.message || 'Failed to delete recurring payment');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return {
     entries,
+    recurringPayments,
+    monthData,
+    yearData,
     addEntry,
     updateEntry,
     deleteEntry,
-    recurringPayments,
     addRecurringPayment,
     updateRecurringPayment,
     deleteRecurringPayment,
-    monthData,
-    yearData,
+    isLoading,
+    error
   };
 }; 

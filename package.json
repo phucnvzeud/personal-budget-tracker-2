@@ -11,7 +11,15 @@
     "@types/react": "^18.3.20",
     "@types/react-dom": "^18.3.6",
     "@types/react-router-dom": "^5.3.3",
+    "axios": "^1.6.0",
+    "bcrypt": "^5.1.1",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
     "date-fns": "^2.30.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.5.0",
@@ -21,10 +29,13 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "node server.js",
+    "start:dev": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "server": "nodemon server.js",
+    "dev": "concurrently \"npm run server\" \"npm run start:dev\""
   },
   "eslintConfig": {
     "extends": [
@@ -45,6 +56,8 @@
     ]
   },
   "devDependencies": {
-    "@types/uuid": "^8.3.0"
+    "@types/uuid": "^8.3.0",
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.0.1"
   }
 }
