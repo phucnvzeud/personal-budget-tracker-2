@@ -3,7 +3,7 @@ services:
     name: personal-budget-tracker
     env: node
     plan: free
-    buildCommand: npm install && npm run build
+    buildCommand: npm install && npm run build && mkdir -p build && cp -r build build-backup && find build -type f -name "*.map" -delete
     startCommand: SERVER_PORT=8080 node server.js
     preDeployCommand: cp .env.render .env
     envVars:

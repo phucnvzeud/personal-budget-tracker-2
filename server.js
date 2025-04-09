@@ -295,12 +295,85 @@ app.delete('/api/recurring-payments/:id', authenticateToken, async (req, res) =>
   }
 });
 
+// Categories endpoint
+app.get('/api/categories', authenticateToken, async (req, res) => {
+  try {
+    // Providing default categories since there's no specific Category model
+    const categories = [
+      'Housing', 'Transportation', 'Food', 'Utilities', 
+      'Insurance', 'Medical', 'Savings', 'Personal', 
+      'Entertainment', 'Debt', 'Education', 'Gifts', 'Income'
+    ];
+    
+    res.json(categories);
+  } catch (error) {
+    console.error('Error getting categories:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Status endpoint
+app.get('/api/status', (req, res) => {
+  res.json({
+    status: 'online',
+    serverTime: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, 'build')));
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'build', 'index.html'));
-  });
+  console.log('Running in production mode');
+  console.log('Current directory:', __dirname);
+  
+  // Check if build directory exists
+  const buildPath = path.join(__dirname, 'build');
+  const indexPath = path.join(buildPath, 'index.html');
+  const statusPath = path.join(__dirname, 'status.html');
+  
+  if (require('fs').existsSync(buildPath)) {
+    console.log('Build directory found, serving static files');
+    app.use(express.static(buildPath));
+    
+    app.get('*', (req, res, next) => {
+      // Skip API routes
+      if (req.path.startsWith('/api')) return next();
+      
+      if (require('fs').existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        console.log('index.html not found in build directory');
+        // Serve the status page if build/index.html doesn't exist
+        if (require('fs').existsSync(statusPath)) {
+          res.sendFile(statusPath);
+        } else {
+          res.status(404).json({ error: 'Frontend build files not found' });
+        }
+      }
+    });
+  } else {
+    console.log('Build directory not found, running in API-only mode');
+    app.get('*', (req, res, next) => {
+      // Skip API routes
+      if (req.path.startsWith('/api')) return next();
+      
+      // Serve the status page if it exists
+      if (require('fs').existsSync(statusPath)) {
+        res.sendFile(statusPath);
+      } else {
+        res.json({
+          message: 'Personal Budget Tracker API',
+          status: 'online',
+          apiRoutes: [
+            '/api/entries',
+            '/api/auth/register',
+            '/api/auth/login',
+            '/api/recurring-payments'
+          ]
+        });
+      }
+    });
+  }
 }
 
 app.listen(PORT, () => {

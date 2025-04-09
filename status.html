@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Budget Tracker API</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 1rem 0;
+            text-align: center;
+            border-radius: 5px;
+            margin-bottom: 2rem;
+        }
+        h1 {
+            margin: 0;
+        }
+        .card {
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 50px;
+            background-color: #28a745;
+            color: white;
+            font-weight: bold;
+        }
+        ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #eee;
+        }
+        li:last-child {
+            border-bottom: none;
+        }
+        code {
+            background-color: #f5f5f5;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Personal Budget Tracker API</h1>
+        </header>
+        
+        <div class="card">
+            <h2>API Status: <span class="status">Running</span></h2>
+            <p>The API is operational and accepting requests.</p>
+        </div>
+        
+        <div class="card">
+            <h2>Available API Routes</h2>
+            <ul>
+                <li><code>POST /api/auth/register</code> - Register a new user</li>
+                <li><code>POST /api/auth/login</code> - Authenticate and get token</li>
+                <li><code>GET /api/entries</code> - Get all financial entries</li>
+                <li><code>POST /api/entries</code> - Create a new financial entry</li>
+                <li><code>PUT /api/entries/:id</code> - Update a financial entry</li>
+                <li><code>DELETE /api/entries/:id</code> - Delete a financial entry</li>
+                <li><code>GET /api/categories</code> - Get all categories</li>
+                <li><code>GET /api/recurring-payments</code> - Get recurring payments</li>
+                <li><code>POST /api/recurring-payments</code> - Create a recurring payment</li>
+                <li><code>PUT /api/recurring-payments/:id</code> - Update a recurring payment</li>
+                <li><code>DELETE /api/recurring-payments/:id</code> - Delete a recurring payment</li>
+            </ul>
+        </div>
+        
+        <div class="card">
+            <h2>Running in API-Only Mode</h2>
+            <p>The frontend build was not found. The server is running in API-only mode.</p>
+            <p>To access the full application with the frontend, please ensure the React app is properly built.</p>
+        </div>
+    </div>
+</body>
+</html> 
