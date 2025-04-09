@@ -1,4 +1,9 @@
-app = "personal-budget-tracker"
+# fly.toml app configuration file generated for personal-budget-tracker-lingering-morning-9151 on 2025-04-09T18:37:36+07:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = "personal-budget-tracker-lingering-morning-9151"
 
 [build]
   dockerfile = "Dockerfile"
@@ -25,10 +30,6 @@ app = "personal-budget-tracker"
   port = 443
 
 [[vm]]
-  memory = "512mb"
+  memory = "256mb"
   cpu_kind = "shared"
   cpus = 1
-
-[mounts]
-  source = "budget_tracker_data"
-  destination = "/data" 
