@@ -4,10 +4,10 @@ services:
     env: node
     plan: free
     buildCommand: npm install && npm run build
-    startCommand: node server.js
+    startCommand: SERVER_PORT=8080 node server.js
     preDeployCommand: cp .env.render .env
     envVars:
-      - key: PORT
+      - key: SERVER_PORT
         value: 8080
       - key: NODE_ENV
         value: production

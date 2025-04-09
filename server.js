@@ -8,14 +8,19 @@ const path = require('path');
 require('dotenv').config();
 
 const app = express();
-// Force PORT to be a number
-const PORT = parseInt(process.env.PORT || "8080", 10);
+// Force PORT to be a valid number, with a hardcoded default
+// Try both PORT and SERVER_PORT environment variables
+const portEnv = process.env.PORT || process.env.SERVER_PORT || "8080";
+const portValue = parseInt(portEnv, 10);
+const PORT = isNaN(portValue) ? 8080 : portValue;
 const JWT_SECRET = process.env.JWT_SECRET || 'budget-tracker-secret-key';
 
 // Debug environment variables
 console.log('Environment variables:', { 
   NODE_ENV: process.env.NODE_ENV,
   PORT: process.env.PORT,
+  SERVER_PORT: process.env.SERVER_PORT,
+  PARSED_PORT: PORT, // Show the actual port we'll use
   MONGODB_URI: process.env.MONGODB_URI ? '[REDACTED]' : undefined
 });
 
