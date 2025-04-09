@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="Personal Budget Tracker Application"
+    />
+    <title>Personal Budget Tracker</title>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <script>
+      // Error handling for React rendering issues
+      window.addEventListener('error', function(e) {
+        console.error('Global error caught:', e.error);
+        // If the app doesn't render after 3 seconds, show an error message
+        setTimeout(function() {
+          if (document.getElementById('root').children.length === 0) {
+            document.getElementById('root').innerHTML = '<div style="padding: 20px; text-align: center;"><h2>Error Loading Application</h2><p>Please check the console for details.</p></div>';
+          }
+        }, 3000);
+      });
+    </script>
+  </body>
+</html> 

@@ -1,0 +1,9 @@
+react
+react-dom
+react-scripts
+typescript
+date-fns
+@types/react
+@types/react-dom
+@types/node
+web-vitals 

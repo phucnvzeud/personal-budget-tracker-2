@@ -1,0 +1,397 @@
+.daily-view {
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.daily-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.daily-header h2 {
+  margin: 0;
+  font-size: 24px;
+  color: #333;
+}
+
+.today-badge {
+  background-color: #2196f3;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.daily-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.summary-card {
+  background-color: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+
+.summary-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.summary-card.income {
+  border-top: 4px solid #4caf50;
+}
+
+.summary-card.expense {
+  border-top: 4px solid #f44336;
+}
+
+.summary-card.balance {
+  border-top: 4px solid #2196f3;
+}
+
+.summary-label {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.summary-value {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.summary-value.positive {
+  color: #4caf50;
+}
+
+.summary-value.negative {
+  color: #f44336;
+}
+
+/* Quick Add Section */
+.quick-add-section {
+  margin-bottom: 32px;
+}
+
+.quick-add-buttons {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.quick-add-button {
+  flex: 1;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.quick-add-button.income {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #a5d6a7;
+}
+
+.quick-add-button.income:hover {
+  background-color: #c8e6c9;
+  transform: translateY(-2px);
+}
+
+.quick-add-button.expense {
+  background-color: #ffebee;
+  color: #c62828;
+  border: 1px solid #ef9a9a;
+}
+
+.quick-add-button.expense:hover {
+  background-color: #ffcdd2;
+  transform: translateY(-2px);
+}
+
+.entry-form {
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+}
+
+.form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.form-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #666;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.close-button:hover {
+  color: #333;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 8px;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #2196f3;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.form-actions button {
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancel-button {
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  color: #333;
+}
+
+.cancel-button:hover {
+  background-color: #e0e0e0;
+}
+
+.add-button {
+  background-color: #2196f3;
+  color: white;
+  border: none;
+}
+
+.add-button:hover {
+  background-color: #1976d2;
+  transform: translateY(-2px);
+}
+
+.entries-section {
+  background-color: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.section-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.entries-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.entry {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border-radius: 8px;
+  background-color: #f8f9fa;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.entry:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.entry.income {
+  border-left: 4px solid #4caf50;
+}
+
+.entry.expense {
+  border-left: 4px solid #f44336;
+}
+
+.entry-content {
+  flex: 1;
+}
+
+.entry-description {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.entry-amount {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.entry.income .entry-amount {
+  color: #4caf50;
+}
+
+.entry.expense .entry-amount {
+  color: #f44336;
+}
+
+.entry-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-button,
+.delete-button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.edit-button {
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  color: #333;
+}
+
+.edit-button:hover {
+  background-color: #e0e0e0;
+}
+
+.delete-button {
+  background-color: #ffebee;
+  border: 1px solid #ef5350;
+  color: #f44336;
+}
+
+.delete-button:hover {
+  background-color: #ffcdd2;
+}
+
+.no-entries {
+  text-align: center;
+  padding: 24px;
+  color: #666;
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .daily-view {
+    padding: 12px;
+  }
+
+  .daily-header h2 {
+    font-size: 18px;
+  }
+
+  .daily-summary {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .summary-card {
+    padding: 12px;
+  }
+
+  .summary-value {
+    font-size: 18px;
+  }
+  
+  .quick-add-buttons {
+    margin-bottom: 12px;
+  }
+  
+  .quick-add-button {
+    padding: 10px;
+    font-size: 14px;
+  }
+  
+  .entry-form {
+    padding: 16px;
+  }
+  
+  .form-group input {
+    padding: 10px;
+  }
+  
+  .form-actions button {
+    padding: 8px 14px;
+  }
+
+  .entries-section {
+    padding: 16px;
+  }
+
+  .entry {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .entry-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+} 
